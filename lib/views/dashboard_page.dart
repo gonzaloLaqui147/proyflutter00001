@@ -1,11 +1,23 @@
 import 'package:flutter/material.dart';
+import '../Services/api_service.dart';
+import '../models/gastos_model.dart';
 import 'add_expense_page.dart';
 import 'settings_page.dart';
 import 'reports_page.dart';
 import 'expenses_page.dart';
 
-class DashboardPage extends StatelessWidget {
-  const DashboardPage({super.key});
+class DashboardPage extends StatefulWidget {
+  final String nombre;
+  final int usuarioId;
+
+  const DashboardPage({super.key, required this.nombre, required this.usuarioId});
+
+  @override
+  State<DashboardPage> createState() => _DashboardPageState();
+}
+
+class _DashboardPageState extends State<DashboardPage> {
+  final ApiService _apiService = ApiService();
 
   @override
   Widget build(BuildContext context) {
@@ -16,13 +28,16 @@ class DashboardPage extends StatelessWidget {
         elevation: 0,
         leading: const Padding(
           padding: EdgeInsets.all(8.0),
-          child: CircleAvatar(backgroundColor: Colors.grey), // Simula la foto de perfil
+          child: CircleAvatar(backgroundColor: Colors.grey),
         ),
-        title: const Column(
+        title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('HOLA,', style: TextStyle(color: Colors.grey, fontSize: 10)),
-            Text('Carlos', style: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text('Hola,', style: TextStyle(color: Colors.grey, fontSize: 10)),
+            Text(
+                widget.nombre,
+                style: const TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold)
+            ),
           ],
         ),
         actions: [
@@ -33,7 +48,6 @@ class DashboardPage extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            // Card de Saldo
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(25),
@@ -59,11 +73,10 @@ class DashboardPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
-            // Fila de Ingresos / Gastos
-            const Row(
+            Row( // Sin const aquí
               children: [
                 Expanded(child: _SummaryCard(label: 'INGRESOS', amount: 'S/ 5,800.00', color: Colors.green, isUp: true)),
-                SizedBox(width: 15),
+                const SizedBox(width: 15),
                 Expanded(child: _SummaryCard(label: 'GASTOS', amount: 'S/ 1,550.00', color: Colors.red, isUp: false)),
               ],
             ),
@@ -76,10 +89,31 @@ class DashboardPage extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 15),
-            // Lista de transacciones
-            _TransactionItem(icon: Icons.restaurant, title: 'Restaurante La Mar', subtitle: 'Hoy • Comida', amount: '- S/ 120.00', isNegative: true),
-            _TransactionItem(icon: Icons.directions_car, title: 'Uber Perú', subtitle: 'Ayer • Transporte', amount: '- S/ 25.50', isNegative: true),
-            _TransactionItem(icon: Icons.shopping_bag, title: 'H&M Jockey Plaza', subtitle: '23 Oct • Compras', amount: '- S/ 249.00', isNegative: true),
+            FutureBuilder<List<Gasto>>(
+              future: _apiService.fetchGastos(widget.usuarioId),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                } else if (snapshot.hasError) {
+                  return Text('Error: ${snapshot.error}');
+                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Text('Sin transacciones recientes');
+                }
+
+                final gastos = snapshot.data!;
+                return Column(
+                  children: gastos.map<Widget>((gasto) {
+                    return _TransactionItem(
+                      icon: _getIconForCategory(gasto.categoria),
+                      title: gasto.descripcion,
+                      subtitle: '${gasto.fecha} • ${gasto.categoria}',
+                      amount: '- S/ ${gasto.monto.toStringAsFixed(2)}',
+                      isNegative: true,
+                    );
+                  }).toList(),
+                );
+              },
+            ),
           ],
         ),
       ),
@@ -87,8 +121,11 @@ class DashboardPage extends StatelessWidget {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const AddExpensePage()),
-          );
+            MaterialPageRoute(builder: (context) => AddExpensePage(usuarioId: widget.usuarioId)),
+          ).then((value) {
+            // Refresco de dash
+            setState(() {});
+          });
         },
         backgroundColor: const Color(0xFF001529),
         child: const Icon(Icons.add, color: Colors.white),
@@ -98,21 +135,12 @@ class DashboardPage extends StatelessWidget {
         selectedItemColor: const Color(0xFF001529),
         currentIndex: 0,
         onTap: (index) {
-          if (index == 1) { // El índice 1 corresponde a "Gastos"
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const ExpensesPage()),
-            );
-          } else if (index == 2) { // Reportes
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const ReportsPage()),
-            );
-          } else if (index == 3) { // Perfil
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const SettingsPage()),
-            );
+          if (index == 1) {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const ExpensesPage()));
+          } else if (index == 2) {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const ReportsPage()));
+          } else if (index == 3) {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsPage()));
           }
         },
         items: const [
@@ -123,6 +151,16 @@ class DashboardPage extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  IconData _getIconForCategory(String categoria) {
+    switch (categoria.toLowerCase()) {
+      case 'comida': return Icons.restaurant;
+      case 'transporte': return Icons.directions_car;
+      case 'compras': return Icons.shopping_bag;
+      case 'salud': return Icons.medical_services;
+      default: return Icons.monetization_on_outlined;
+    }
   }
 }
 

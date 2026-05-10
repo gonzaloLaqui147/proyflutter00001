@@ -169,7 +169,7 @@ class ReportsPage extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
-                        'Distribución de Gastos',
+                        'Categoría de Gastos',
                         style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF001529)),
                       ),
                       Icon(Icons.pie_chart_outline, color: Colors.grey[400]),
