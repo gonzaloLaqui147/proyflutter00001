@@ -1,3 +1,4 @@
+// ... (Tus imports se mantienen igual)
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -11,37 +12,31 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  // Controladores para capturar los datos
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
 
-  // Función para conectar con el backend
+  // ... (Tu función _login se mantiene exactamente igual)
   Future<void> _login() async {
     setState(() => _isLoading = true);
-
     const String url = "http://127.0.0.1:3000/login";
-
     try {
       final response = await http.post(
         Uri.parse(url),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
-          "email": _emailController.text, // Capturamos lo que escribió el usuario
+          "email": _emailController.text,
           "password": _passwordController.text,
         }),
       );
 
       if (response.statusCode == 200) {
-        // 1. Extraemos la data que devuelve tu backend (Node.js)
         final data = json.decode(response.body);
-
         if (mounted) {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
                 builder: (context) => DashboardPage(
-                  // Usamos ?? para dar un valor por defecto si el servidor manda null
                   nombre: data['nombre'] ?? 'Usuario',
                   usuarioId: data['id'] ?? 1,)),
           );
@@ -72,6 +67,7 @@ class _LoginPageState extends State<LoginPage> {
         child: Column(
           children: [
             const SizedBox(height: 80),
+            // ... (Tu icono de billetera se mantiene igual)
             Container(
               padding: const EdgeInsets.all(15),
               decoration: BoxDecoration(
@@ -101,6 +97,8 @@ class _LoginPageState extends State<LoginPage> {
                   const SizedBox(height: 20),
                   _buildTextField('CONTRASEÑA', Icons.lock_outline, '••••••••', isPassword: true, controller: _passwordController),
                   const SizedBox(height: 30),
+
+                  // BOTÓN DE LOGIN
                   SizedBox(
                     width: double.infinity,
                     height: 55,
@@ -122,6 +120,33 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                   ),
+
+                  // --- ESTO ES LO NUEVO QUE AÑADIMOS ---
+                  const SizedBox(height: 25),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        '¿No tienes una cuenta?',
+                        style: TextStyle(color: Colors.grey, fontSize: 14),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          // Navegamos a la ruta que definimos en main.dart
+                          Navigator.pushNamed(context, '/register');
+                        },
+                        child: const Text(
+                          'Regístrate',
+                          style: TextStyle(
+                            color: Color(0xFF006C35), // Usamos el mismo verde de tu botón
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  // -------------------------------------
                 ],
               ),
             ),
@@ -131,6 +156,7 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  // ... (Tu método _buildTextField se mantiene igual)
   Widget _buildTextField(String label, IconData icon, String hint, {bool isPassword = false, required TextEditingController controller}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

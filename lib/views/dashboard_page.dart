@@ -60,6 +60,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 children: [
                   Text('Saldo Disponible', style: TextStyle(color: Colors.white70, fontSize: 14)),
                   SizedBox(height: 10),
+                  // Nota: Aquí podrías usar otro FutureBuilder para el saldo real desde el SQL
                   Text('S/ 4,250.00', style: TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold)),
                   SizedBox(height: 20),
                   Row(
@@ -73,7 +74,7 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
             ),
             const SizedBox(height: 20),
-            Row( // Sin const aquí
+            Row(
               children: [
                 Expanded(child: _SummaryCard(label: 'INGRESOS', amount: 'S/ 5,800.00', color: Colors.green, isUp: true)),
                 const SizedBox(width: 15),
@@ -123,7 +124,6 @@ class _DashboardPageState extends State<DashboardPage> {
             context,
             MaterialPageRoute(builder: (context) => AddExpensePage(usuarioId: widget.usuarioId)),
           ).then((value) {
-            // Refresco de dash
             setState(() {});
           });
         },
@@ -140,7 +140,13 @@ class _DashboardPageState extends State<DashboardPage> {
           } else if (index == 2) {
             Navigator.push(context, MaterialPageRoute(builder: (context) => const ReportsPage()));
           } else if (index == 3) {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsPage()));
+            // CORRECCIÓN AQUÍ: Pasamos el usuarioId a SettingsPage
+            Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => SettingsPage(usuarioId: widget.usuarioId)
+                )
+            );
           }
         },
         items: const [
@@ -157,8 +163,10 @@ class _DashboardPageState extends State<DashboardPage> {
     switch (categoria.toLowerCase()) {
       case 'comida': return Icons.restaurant;
       case 'transporte': return Icons.directions_car;
+      case 'ocio': return Icons.celebration; // Agregada categoría Ocio
       case 'compras': return Icons.shopping_bag;
       case 'salud': return Icons.medical_services;
+      case 'educación': return Icons.school;
       default: return Icons.monetization_on_outlined;
     }
   }
