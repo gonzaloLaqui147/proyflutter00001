@@ -4,8 +4,42 @@ import '../models/gastos_model.dart';
 import '../models/register_model.dart';
 
 class ApiService {
-  // Dirección IP para Chrome Web
+  // Dirección IP para Chrome Web (NodeJS backend)
   static const String baseUrl = "http://localhost:3000";
+
+  // Dirección para el servidor local de Inteligencia Artificial (Flask backend)
+  static const String aiUrl = "http://localhost:5000";
+
+  // =====================================================================
+  // NUEVA FUNCIÓN: CONEXIÓN CON EL MOTOR DE IA (bille_ai)
+  // =====================================================================
+  Future<Map<String, dynamic>> fetchPrediccion(int usuarioId, int mes, String categoria) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$aiUrl/predict_usuario'),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "usuario_id": usuarioId,
+          "mes": mes,
+          "categoria": categoria,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        throw Exception("Error del servidor de IA: ${response.statusCode}");
+      }
+    } catch (e) {
+      // Lanzamos el error para que el 'catch' de tu ReportsController lo capture
+      // y aplique la simulación inteligente sin romper la experiencia del usuario.
+      throw Exception("Error de conexión con bille_ai: $e");
+    }
+  }
+
+  // =====================================================================
+  // FUNCIONES EXISTENTES DE TU BACKEND NODEJS
+  // =====================================================================
 
   // Funcion Registro
   Future<bool> registrarUsuarioCompleto(RegisterRequest datos) async {
@@ -98,6 +132,27 @@ class ApiService {
     } catch (e) {
       print("Error en ApiService (POST config): $e");
       return false;
+    }
+  }
+
+  Future<Map<String, dynamic>> getSaldoDisponible(int usuarioId) async {
+    final response = await http.get(Uri.parse('$baseUrl/usuarios/saldo/$usuarioId'));
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      throw Exception('Error al conectar con el servidor de saldo');
+    }
+  }
+
+  Future<List<Gasto>> fetchGastosRecientes(int usuarioId) async {
+    final response = await http.get(Uri.parse('$baseUrl/gastos/recientes/$usuarioId'));
+
+    if (response.statusCode == 200) {
+      List jsonResponse = json.decode(response.body);
+      return jsonResponse.map((gasto) => Gasto.fromJson(gasto)).toList();
+    } else {
+      throw Exception('Error al cargar las transacciones recientes');
     }
   }
 }

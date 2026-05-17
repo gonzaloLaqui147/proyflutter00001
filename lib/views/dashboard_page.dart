@@ -48,39 +48,55 @@ class _DashboardPageState extends State<DashboardPage> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(25),
-              decoration: BoxDecoration(
-                color: const Color(0xFF001529),
-                borderRadius: BorderRadius.circular(30),
-              ),
-              child: const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Saldo Disponible', style: TextStyle(color: Colors.white70, fontSize: 14)),
-                  SizedBox(height: 10),
-                  // Nota: Aquí podrías usar otro FutureBuilder para el saldo real desde el SQL
-                  Text('S/ 4,250.00', style: TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold)),
-                  SizedBox(height: 20),
-                  Row(
+            // FUTUREBUILDER EXCLUSIVO PARA EL SALDO DISPONIBLE
+            FutureBuilder<Map<String, dynamic>>(
+              future: _apiService.getSaldoDisponible(widget.usuarioId),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Container(
+                    width: double.infinity,
+                    height: 140,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF001529),
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    child: const Center(child: CircularProgressIndicator(color: Colors.white)),
+                  );
+                } else if (snapshot.hasError) {
+                  return Text('Error al cargar saldo: ${snapshot.error}');
+                }
+
+                final datos = snapshot.data;
+                double saldoReal = 0.0;
+                if (datos != null && datos['saldo_disponible'] != null) {
+                  saldoReal = double.tryParse(datos['saldo_disponible'].toString()) ?? 0.0;
+                }
+
+                return Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(25),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF001529),
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.credit_card, color: Colors.green, size: 18),
-                      SizedBox(width: 10),
-                      Text('CUENTA PRINCIPAL • 4492', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                      const Text('Saldo Disponible', style: TextStyle(color: Colors.white70, fontSize: 14)),
+                      const SizedBox(height: 10),
+                      Text(
+                          'S/ ${saldoReal.toStringAsFixed(2)}',
+                          style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold)
+                      ),
+                      const SizedBox(height: 20),
+
                     ],
-                  )
-                ],
-              ),
+                  ),
+                );
+              },
             ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(child: _SummaryCard(label: 'INGRESOS', amount: 'S/ 5,800.00', color: Colors.green, isUp: true)),
-                const SizedBox(width: 15),
-                Expanded(child: _SummaryCard(label: 'GASTOS', amount: 'S/ 1,550.00', color: Colors.red, isUp: false)),
-              ],
-            ),
+
+            // Espaciado directo hacia las transacciones (Removidas tarjetas de ingresos/gastos)
             const SizedBox(height: 30),
             const Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -90,8 +106,10 @@ class _DashboardPageState extends State<DashboardPage> {
               ],
             ),
             const SizedBox(height: 15),
+
+            // HISTORIAL DE TRANSACCIONES EN EL DASHBOARD
             FutureBuilder<List<Gasto>>(
-              future: _apiService.fetchGastos(widget.usuarioId),
+              future: _apiService.fetchGastosRecientes(widget.usuarioId), // CAMBIADO AQUÍ
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -124,7 +142,7 @@ class _DashboardPageState extends State<DashboardPage> {
             context,
             MaterialPageRoute(builder: (context) => AddExpensePage(usuarioId: widget.usuarioId)),
           ).then((value) {
-            setState(() {});
+            setState(() {}); // Gatilla la actualización del balance al regresar
           });
         },
         backgroundColor: const Color(0xFF001529),
@@ -136,11 +154,16 @@ class _DashboardPageState extends State<DashboardPage> {
         currentIndex: 0,
         onTap: (index) {
           if (index == 1) {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => const ExpensesPage()));
+            Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => ExpensesPage(usuarioId: widget.usuarioId))
+            );
           } else if (index == 2) {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => const ReportsPage()));
+            Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => ReportsPage(usuarioId: widget.usuarioId))
+            );
           } else if (index == 3) {
-            // CORRECCIÓN AQUÍ: Pasamos el usuarioId a SettingsPage
             Navigator.push(
                 context,
                 MaterialPageRoute(
