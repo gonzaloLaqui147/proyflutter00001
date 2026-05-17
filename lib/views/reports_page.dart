@@ -371,13 +371,13 @@ class ReportsPage extends StatelessWidget {
                   }),
 
                 // ================================================================
-                // INTEGRACIÓN IA: PREDICCIONES BILLE_AI (Siguiente Mes)
+                // INTEGRACIÓN IA: PREDICCIÓN BILLE_AI (Siguiente Mes)
                 // ================================================================
                 const SizedBox(height: 25),
                 Row(
                   children: [
                     const Text(
-                      'Predicciones Bille AI',
+                      'Predicción Bille AI',
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF001529)),
                     ),
                     const SizedBox(width: 8),
@@ -396,13 +396,13 @@ class ReportsPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 const Text(
-                  'Tus próximos 3 probables gastos para el siguiente mes:',
+                  'Tu gasto más probable para el siguiente mes es:',
                   style: TextStyle(color: Colors.grey, fontSize: 13),
                 ),
                 const SizedBox(height: 12),
 
-                FutureBuilder<List<Map<String, dynamic>>>(
-                  future: controller.obtenerPrediccionesProximoMes(todosLosGastos, usuarioId, apiService),
+                FutureBuilder<Map<String, dynamic>?>(
+                  future: controller.obtenerPrediccionProximoMes(todosLosGastos, usuarioId, apiService),
                   builder: (context, aiSnapshot) {
                     if (aiSnapshot.connectionState == ConnectionState.waiting) {
                       return Container(
@@ -434,11 +434,13 @@ class ReportsPage extends StatelessWidget {
                       );
                     }
 
-                    if (!aiSnapshot.hasData || aiSnapshot.data!.isEmpty) {
+                    if (!aiSnapshot.hasData || aiSnapshot.data == null) {
                       return const SizedBox.shrink();
                     }
 
-                    final predicciones = aiSnapshot.data!;
+                    final prediccion = aiSnapshot.data!;
+                    String cat = prediccion['categoria'];
+                    double monto = prediccion['monto'];
 
                     return Container(
                       padding: const EdgeInsets.all(20),
@@ -457,42 +459,35 @@ class ReportsPage extends StatelessWidget {
                           )
                         ],
                       ),
-                      child: Column(
-                        children: predicciones.map((pred) {
-                          String cat = pred['categoria'];
-                          double monto = pred['monto'];
-
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
                               children: [
-                                Row(
-                                  children: [
-                                    CircleAvatar(
-                                      backgroundColor: Colors.white.withOpacity(0.15),
-                                      radius: 16,
-                                      child: Icon(_getIconForCategory(cat), color: Colors.white, size: 16),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Text(
-                                      cat,
-                                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 14),
-                                    ),
-                                  ],
+                                CircleAvatar(
+                                  backgroundColor: Colors.white.withOpacity(0.15),
+                                  radius: 18,
+                                  child: Icon(_getIconForCategory(cat), color: Colors.white, size: 18),
                                 ),
+                                const SizedBox(width: 12),
                                 Text(
-                                  'S/. ${monto.toStringAsFixed(2)}',
-                                  style: const TextStyle(
-                                    color: Color(0xFF43FA9B),
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                  ),
+                                  cat,
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
                                 ),
                               ],
                             ),
-                          );
-                        }).toList(),
+                            Text(
+                              'S/. ${monto.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                color: Color(0xFF43FA9B),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   },

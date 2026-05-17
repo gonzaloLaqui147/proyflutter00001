@@ -90,40 +90,37 @@ class ReportsController {
   }
 
 
-  Future<List<Map<String, dynamic>>> obtenerPrediccionesProximoMes(
+  // === LÓGICA TARJETA 3: Predicción única del próximo mes ===
+  Future<Map<String, dynamic>?> obtenerPrediccionProximoMes(
       List<Gasto> todosLosGastos,
       int usuarioId,
-      dynamic apiService // Pasamos el ApiService para hacer las peticiones HTTP
+      dynamic apiService
       ) async {
+    if (todosLosGastos.isEmpty) return null;
+
     final DateTime now = DateTime.now();
-    // 1. Calculamos el mes siguiente (Si es diciembre, pasa a enero)
     int proximoMes = now.month == 12 ? 1 : now.month + 1;
 
-    // 2. Obtenemos las categorías ordenadas por dónde gasta más frecuentemente
+    // 1. Obtenemos las categorías y tomamos únicamente la TOP 1
     Map<String, double> distribucion = calcularDistribucionPorCategoria(todosLosGastos);
-    List<String> categoriasTop = distribucion.keys.take(3).toList();
+    if (distribucion.isEmpty) return null;
 
-    List<Map<String, dynamic>> prediccionesFinales = [];
+    String categoriaTop1 = distribucion.keys.first;
 
-    // 3. Consultamos en paralelo la predicción para cada una de las 3 categorías top
-    for (String categoria in categoriasTop) {
-      try {
-        // Llamamos al endpoint '/predict_usuario' que ya tienes creado en tu Flask
-        final respuesta = await apiService.fetchPrediccion(usuarioId, proximoMes, categoria.toLowerCase());
+    try {
+      // 2. Consultamos la API solo para esa categoría principal
+      final respuesta = await apiService.fetchPrediccion(usuarioId, proximoMes, categoriaTop1.toLowerCase());
 
-        prediccionesFinales.add({
-          'categoria': categoria,
-          'monto': respuesta['gasto_predicho'] ?? 0.0,
-        });
-      } catch (_) {
-        // Si el Colab está apagado o falla, dejamos un estimado básico para que no se rompa la app
-        prediccionesFinales.add({
-          'categoria': categoria,
-          'monto': (distribucion[categoria] ?? 0.0) * 1.05, // Simulación inteligente (+5%)
-        });
-      }
+      return {
+        'categoria': categoriaTop1,
+        'monto': respuesta['gasto_predicho'] ?? 0.0,
+      };
+    } catch (_) {
+      // Respaldo local si la IA está apagada
+      return {
+        'categoria': categoriaTop1,
+        'monto': (distribucion[categoriaTop1] ?? 0.0) * 1.05,
+      };
     }
-
-    return prediccionesFinales;
   }
 }
